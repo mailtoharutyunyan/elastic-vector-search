@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Semantic Search</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        h1 { text-align: center; margin-bottom: 8px; font-size: 2em; color: #1a1a2e; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 32px; font-size: 14px; }
+        .subtitle code { background: #e8f0fe; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .search-box { display: flex; gap: 8px; margin-bottom: 16px; }
+        .search-box input {
+            flex: 1; padding: 14px 18px; border: 2px solid #ddd; border-radius: 10px;
+            font-size: 16px; outline: none; transition: border-color 0.2s;
+        }
+        .search-box input:focus { border-color: #4a90d9; }
+        .search-box button {
+            padding: 14px 28px; background: #4a90d9; color: white; border: none;
+            border-radius: 10px; font-size: 16px; cursor: pointer; transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .search-box button:hover { background: #357abd; }
+        .search-options { display: flex; gap: 16px; margin-bottom: 24px; justify-content: center; align-items: center; flex-wrap: wrap; }
+        .search-type { display: flex; gap: 16px; }
+        .search-type label { cursor: pointer; font-size: 14px; color: #555; }
+        .search-type input[type="radio"] { margin-right: 4px; }
+        .visualize-toggle {
+            display: flex; align-items: center; gap: 8px; margin-left: 16px;
+            padding-left: 16px; border-left: 1px solid #ddd;
+        }
+        .visualize-toggle label { cursor: pointer; font-size: 14px; color: #555; font-weight: 500; }
+        .switch {
+            position: relative; display: inline-block; width: 40px; height: 22px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: 0.3s; border-radius: 22px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+            background-color: white; transition: 0.3s; border-radius: 50%;
+        }
+        .switch input:checked + .slider { background-color: #4a90d9; }
+        .switch input:checked + .slider:before { transform: translateX(18px); }
+        .examples { text-align: center; margin-bottom: 24px; font-size: 13px; color: #888; }
+        .examples span {
+            display: inline-block; background: #fff; border: 1px solid #e0e0e0;
+            padding: 4px 12px; border-radius: 16px; margin: 3px; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .examples span:hover { border-color: #4a90d9; color: #4a90d9; }
+        .results { display: flex; flex-direction: column; gap: 12px; }
+        .product-card {
+            background: white; border-radius: 12px; padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: box-shadow 0.2s;
+            display: flex; gap: 16px; align-items: flex-start;
+        }
+        .product-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+        .product-image {
+            width: 120px; height: 90px; border-radius: 8px; object-fit: cover;
+            background: #f0f0f0; flex-shrink: 0;
+        }
+        .product-info { flex: 1; }
+        .product-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .product-name { font-size: 1.1em; font-weight: 600; }
+        .product-price { font-size: 1.1em; font-weight: 700; color: #4a90d9; }
+        .product-category {
+            display: inline-block; background: #e8f0fe; color: #4a90d9;
+            padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-bottom: 6px;
+        }
+        .product-description { color: #555; line-height: 1.5; font-size: 14px; }
+        .status { text-align: center; padding: 40px; color: #999; }
+        .loading { display: none; text-align: center; padding: 20px; color: #666; }
+
+        /* How It Works section */
+        .how-it-works-toggle {
+            text-align: center; margin: 40px 0 16px 0;
+        }
+        .how-it-works-toggle button {
+            background: none; border: 2px solid #4a90d9; color: #4a90d9; padding: 10px 24px;
+            border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;
+        }
+        .how-it-works-toggle button:hover { background: #4a90d9; color: white; }
+        .how-it-works { display: none; margin-top: 16px; }
+        .how-it-works.visible { display: block; }
+        .section-title {
+            font-size: 1.3em; font-weight: 700; color: #1a1a2e; margin: 32px 0 12px 0;
+            padding-bottom: 6px; border-bottom: 2px solid #4a90d9;
+        }
+        .section-title:first-child { margin-top: 0; }
+        .viz-card {
+            background: white; border-radius: 12px; padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px;
+        }
+        .viz-card h3 { font-size: 1em; color: #16213e; margin-bottom: 12px; }
+        .viz-card p { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 10px; }
+
+        /* Flow diagrams */
+        .flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; justify-content: center; margin: 16px 0; }
+        .flow-step {
+            background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 10px;
+            padding: 12px 16px; text-align: center; min-width: 130px; position: relative;
+        }
+        .flow-step.highlight { background: #e8f0fe; border-color: #4a90d9; }
+        .flow-step.es { background: #fff3cd; border-color: #ffc107; }
+        .flow-step .step-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+        .flow-step .step-label { font-size: 12px; font-weight: 600; color: #333; }
+        .flow-step .step-detail { font-size: 10px; color: #777; margin-top: 2px; }
+        .flow-arrow { font-size: 24px; color: #4a90d9; padding: 0 8px; flex-shrink: 0; }
+
+        /* Embedding visualization */
+        .embedding-demo { margin: 16px 0; }
+        .embed-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .embed-text {
+            background: #f0f2f5; border-radius: 8px; padding: 10px 14px; font-size: 13px;
+            min-width: 200px; flex: 1; border-left: 3px solid #4a90d9;
+        }
+        .embed-arrow { color: #4a90d9; font-size: 20px; flex-shrink: 0; }
+        .embed-vector { display: flex; gap: 4px; flex-wrap: wrap; }
+        .token {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: white; border: 1px solid #dee2e6; border-radius: 6px;
+            padding: 4px 8px; font-size: 11px;
+        }
+        .token .t-word { color: #333; font-weight: 600; }
+        .token .t-score { color: #4a90d9; font-size: 10px; }
+        .token.high { border-color: #4a90d9; background: #e8f0fe; }
+        .token.med { border-color: #82b1ff; background: #f0f5ff; }
+        .token.low { border-color: #dee2e6; }
+
+        /* Score bar */
+        .score-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+        .score-label { font-size: 12px; min-width: 200px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .score-bar-bg { flex: 1; height: 20px; background: #f0f2f5; border-radius: 10px; overflow: hidden; }
+        .score-bar { height: 100%; border-radius: 10px; transition: width 0.6s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 10px; color: white; font-weight: 600; }
+        .score-bar.s1 { background: linear-gradient(90deg, #4a90d9, #357abd); }
+        .score-bar.s2 { background: linear-gradient(90deg, #82b1ff, #5c8bd6); }
+        .score-bar.s3 { background: linear-gradient(90deg, #a5c8f7, #7eaee6); }
+        .score-rank { font-size: 14px; font-weight: 700; color: #4a90d9; min-width: 24px; text-align: center; }
+
+        /* Comparison table */
+        .cmp-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+        .cmp-table th { background: #4a90d9; color: white; padding: 8px 12px; text-align: left; }
+        .cmp-table td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .cmp-table tr:nth-child(even) { background: #f9f9f9; }
+        .cmp-table .yes { color: #27ae60; font-weight: 600; }
+        .cmp-table .no { color: #e74c3c; }
+
+        /* Live Visualization */
+        .viz-pipeline { margin-top: 24px; }
+        .viz-step {
+            opacity: 0; transform: translateY(12px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            margin-bottom: 16px;
+        }
+        .viz-step.visible { opacity: 1; transform: translateY(0); }
+        .viz-step-header {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+        }
+        .viz-step-number {
+            width: 28px; height: 28px; border-radius: 50%; background: #4a90d9; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; flex-shrink: 0;
+        }
+        .viz-step-title { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+        .viz-step-body {
+            margin-left: 38px; background: white; border-radius: 10px; padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .viz-connector {
+            width: 2px; height: 20px; background: #4a90d9; margin-left: 13px;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .viz-connector.visible { opacity: 1; }
+        .viz-query-text {
+            font-size: 18px; color: #1a1a2e; font-weight: 500;
+            padding: 8px 0; font-style: italic;
+        }
+        .viz-processing {
+            display: flex; align-items: center; gap: 12px;
+            color: #666; font-size: 13px;
+        }
+        .viz-spinner {
+            width: 20px; height: 20px; border: 2px solid #ddd;
+            border-top-color: #4a90d9; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .viz-tokens { display: flex; gap: 6px; flex-wrap: wrap; }
+        .viz-token {
+            display: inline-flex; align-items: center; gap: 6px;
+            border-radius: 20px; padding: 6px 12px; font-size: 12px;
+            opacity: 0; transform: scale(0.8);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .viz-token.visible { opacity: 1; transform: scale(1); }
+        .viz-token-word { font-weight: 600; }
+        .viz-token-weight {
+            font-size: 10px; opacity: 0.8;
+            font-variant-numeric: tabular-nums;
+        }
+        .viz-result-row {
+            display: flex; align-items: center; gap: 12px; margin: 8px 0;
+            opacity: 0; transform: translateX(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .viz-result-row.visible { opacity: 1; transform: translateX(0); }
+        .viz-result-rank {
+            font-size: 16px; font-weight: 700; color: #4a90d9;
+            min-width: 28px; text-align: center;
+        }
+        .viz-result-info { flex: 1; min-width: 0; }
+        .viz-result-name { font-size: 13px; font-weight: 600; color: #333; }
+        .viz-result-category { font-size: 11px; color: #888; }
+        .viz-result-bar-bg {
+            width: 200px; height: 22px; background: #f0f2f5; border-radius: 11px;
+            overflow: hidden; flex-shrink: 0;
+        }
+        .viz-result-bar {
+            height: 100%; border-radius: 11px;
+            display: flex; align-items: center; justify-content: flex-end;
+            padding-right: 8px; font-size: 10px; color: white; font-weight: 600;
+            transition: width 0.8s ease;
+            background: linear-gradient(90deg, #4a90d9, #357abd);
+        }
+        .viz-result-score {
+            font-size: 12px; font-weight: 600; color: #4a90d9;
+            min-width: 50px; text-align: right;
+        }
+        .viz-done-note {
+            font-size: 12px; color: #888; margin-top: 8px;
+            text-align: center; font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Product Search</h1>
+        <p class="subtitle">
+            Semantic search powered by Elasticsearch <code>ELSER</code> &mdash; embeddings generated inside ES
+        </p>
+
+        <div class="search-box">
+            <input type="text" id="query" placeholder="Describe what you're looking for..." autofocus>
+            <button onclick="search()">Search</button>
+        </div>
+
+        <div class="search-options">
+            <div class="search-type">
+                <label><input type="radio" name="type" value="semantic" checked> Semantic Search</label>
+                <label><input type="radio" name="type" value="hybrid"> Hybrid Search</label>
+            </div>
+            <div class="visualize-toggle">
+                <label class="switch">
+                    <input type="checkbox" id="visualizeToggle">
+                    <span class="slider"></span>
+                </label>
+                <label for="visualizeToggle">Visualize</label>
+            </div>
+        </div>
+
+        <div class="examples">
+            Try:
+            <span onclick="tryQuery(this)">something to keep me warm while hiking</span>
+            <span onclick="tryQuery(this)">healthy drink with antioxidants</span>
+            <span onclick="tryQuery(this)">work from home comfort</span>
+            <span onclick="tryQuery(this)">gift for a programmer</span>
+            <span onclick="tryQuery(this)">outdoor music for a party</span>
+        </div>
+
+        <div class="loading" id="loading">Searching...</div>
+
+        <!-- Live Visualization Pipeline -->
+        <div class="viz-pipeline" id="vizPipeline" style="display: none;"></div>
+
+        <div class="results" id="results">
+            <div class="status">Enter a natural language query to search products semantically</div>
+        </div>
+
+        <!-- HOW IT WORKS -->
+        <div class="how-it-works-toggle">
+            <button onclick="toggleHowItWorks()">How It Works</button>
+        </div>
+
+        <div class="how-it-works" id="howItWorks">
+
+            <!-- 1. ARCHITECTURE -->
+            <div class="section-title">Architecture</div>
+            <div class="viz-card">
+                <h3>Request Flow</h3>
+                <div class="flow">
+                    <div class="flow-step highlight">
+                        <span class="step-icon">&#x1f310;</span>
+                        <span class="step-label">Browser</span>
+                        <span class="step-detail">User types query</span>
+                    </div>
+                    <span class="flow-arrow">&#x2192;</span>
+                    <div class="flow-step">
+                        <span class="step-icon">&#x2615;</span>
+                        <span class="step-label">Spring Boot</span>
+                        <span class="step-detail">REST API :8080</span>
+                    </div>
+                    <span class="flow-arrow">&#x2192;</span>
+                    <div class="flow-step es">
+                        <span class="step-icon">&#x1f50d;</span>
+                        <span class="step-label">Elasticsearch</span>
+                        <span class="step-detail">ELSER + Search :9200</span>
+                    </div>
+                    <span class="flow-arrow">&#x2192;</span>
+                    <div class="flow-step highlight">
+                        <span class="step-icon">&#x1f4e6;</span>
+                        <span class="step-label">Results</span>
+                        <span class="step-detail">Ranked by meaning</span>
+                    </div>
+                </div>
+                <p>The Spring Boot app sends <strong>plain text</strong> to Elasticsearch. ES generates embeddings internally using the ELSER model &mdash; no external AI service needed.</p>
+            </div>
+
+            <!-- 2. EMBEDDING GENERATION -->
+            <div class="section-title">How Embeddings Are Generated</div>
+            <div class="viz-card">
+                <h3>Step 1: Indexing &mdash; Text becomes a sparse vector</h3>
+                <p>When a product is indexed, ELSER (running inside Elasticsearch) reads the description and generates a <strong>sparse vector</strong> &mdash; a set of weighted tokens that capture the semantic meaning:</p>
+                <div class="embedding-demo">
+                    <div class="embed-row">
+                        <div class="embed-text">"Lightweight breathable running shoes with cushioned sole for marathon training"</div>
+                        <span class="embed-arrow">&#x27A1;</span>
+                        <div>
+                            <div style="font-size:11px; color:#888; margin-bottom:6px;">ELSER sparse vector output:</div>
+                            <div class="embed-vector">
+                                <span class="token high"><span class="t-word">running</span><span class="t-score">2.31</span></span>
+                                <span class="token high"><span class="t-word">athletic</span><span class="t-score">1.89</span></span>
+                                <span class="token high"><span class="t-word">footwear</span><span class="t-score">1.75</span></span>
+                                <span class="token med"><span class="t-word">marathon</span><span class="t-score">1.62</span></span>
+                                <span class="token med"><span class="t-word">comfort</span><span class="t-score">1.44</span></span>
+                                <span class="token med"><span class="t-word">lightweight</span><span class="t-score">1.38</span></span>
+                                <span class="token low"><span class="t-word">exercise</span><span class="t-score">0.91</span></span>
+                                <span class="token low"><span class="t-word">sport</span><span class="t-score">0.84</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p>Notice: ELSER generates tokens like <strong>"athletic"</strong> and <strong>"footwear"</strong> that don't appear in the original text. This is the power of semantic understanding &mdash; the model <em>infers</em> related concepts.</p>
+            </div>
+
+            <div class="viz-card">
+                <h3>Step 2: Search &mdash; Query is embedded the same way</h3>
+                <p>When you search, ELSER converts your query into a sparse vector too, then compares it against all stored product vectors:</p>
+                <div class="embedding-demo">
+                    <div class="embed-row">
+                        <div class="embed-text">"gift for a programmer"</div>
+                        <span class="embed-arrow">&#x27A1;</span>
+                        <div>
+                            <div style="font-size:11px; color:#888; margin-bottom:6px;">Query sparse vector:</div>
+                            <div class="embed-vector">
+                                <span class="token high"><span class="t-word">programming</span><span class="t-score">2.10</span></span>
+                                <span class="token high"><span class="t-word">developer</span><span class="t-score">1.80</span></span>
+                                <span class="token med"><span class="t-word">keyboard</span><span class="t-score">1.52</span></span>
+                                <span class="token med"><span class="t-word">computer</span><span class="t-score">1.41</span></span>
+                                <span class="token med"><span class="t-word">technology</span><span class="t-score">1.15</span></span>
+                                <span class="token low"><span class="t-word">present</span><span class="t-score">0.88</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. MATCHING & SCORING -->
+            <div class="section-title">How Matching & Scoring Works</div>
+            <div class="viz-card">
+                <h3>Step 3: Similarity scoring</h3>
+                <p>Elasticsearch compares the query vector against every product's stored vector. Products with overlapping tokens and similar weights score higher:</p>
+
+                <div style="margin: 16px 0;">
+                    <div style="font-size: 12px; color: #888; margin-bottom: 8px;">Query: "gift for a programmer" &mdash; results ranked by semantic similarity:</div>
+
+                    <div class="score-row">
+                        <span class="score-rank">#1</span>
+                        <span class="score-label">Mechanical Keyboard RGB</span>
+                        <div class="score-bar-bg"><div class="score-bar s1" style="width: 92%;">0.92</div></div>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-rank">#2</span>
+                        <span class="score-label">Backpack Laptop Bag</span>
+                        <div class="score-bar-bg"><div class="score-bar s2" style="width: 74%;">0.74</div></div>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-rank">#3</span>
+                        <span class="score-label">Noise-Cancelling Headphones</span>
+                        <div class="score-bar-bg"><div class="score-bar s3" style="width: 67%;">0.67</div></div>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-rank">#4</span>
+                        <span class="score-label">Bluetooth Speaker</span>
+                        <div class="score-bar-bg"><div class="score-bar s3" style="width: 52%;">0.52</div></div>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-rank">#5</span>
+                        <span class="score-label">Organic Green Tea</span>
+                        <div class="score-bar-bg"><div class="score-bar s3" style="width: 18%;">0.18</div></div>
+                    </div>
+                </div>
+
+                <p>The <strong>Mechanical Keyboard</strong> scores highest because its description mentions "programming", "gaming", and "Cherry MX switches" &mdash; concepts strongly associated with programmers in ELSER's trained vocabulary.</p>
+            </div>
+
+            <!-- 4. SEMANTIC vs KEYWORD -->
+            <div class="section-title">Semantic vs Keyword Search</div>
+            <div class="viz-card">
+                <table class="cmp-table">
+                    <tr>
+                        <th>Feature</th>
+                        <th>Keyword Search (BM25)</th>
+                        <th>Semantic Search (ELSER)</th>
+                    </tr>
+                    <tr>
+                        <td>Query: "warm drink"</td>
+                        <td class="no">Only finds docs with "warm" + "drink"</td>
+                        <td class="yes">Finds "tea", "coffee", "hot chocolate"</td>
+                    </tr>
+                    <tr>
+                        <td>Synonyms</td>
+                        <td class="no">Misses them</td>
+                        <td class="yes">Understands them</td>
+                    </tr>
+                    <tr>
+                        <td>Typo tolerance</td>
+                        <td class="no">Exact match only</td>
+                        <td class="yes">Understands intent</td>
+                    </tr>
+                    <tr>
+                        <td>Where embeddings run</td>
+                        <td>N/A</td>
+                        <td class="yes">Inside Elasticsearch</td>
+                    </tr>
+                    <tr>
+                        <td>External AI needed</td>
+                        <td>No</td>
+                        <td class="yes">No (ELSER is built-in)</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 5. HYBRID SEARCH -->
+            <div class="section-title">Hybrid Search</div>
+            <div class="viz-card">
+                <h3>Combining two signals for better results</h3>
+                <p>Hybrid search merges <strong>semantic understanding</strong> (ELSER on descriptions) with <strong>keyword matching</strong> (BM25 on product name and category):</p>
+                <div class="flow" style="margin: 20px 0;">
+                    <div class="flow-step highlight" style="min-width: 160px;">
+                        <span class="step-label">Your Query</span>
+                        <span class="step-detail">"outdoor music"</span>
+                    </div>
+                    <span class="flow-arrow">&#x2192;</span>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="flow-step es" style="min-width: 180px;">
+                            <span class="step-label">Semantic (ELSER)</span>
+                            <span class="step-detail">Searches description meaning</span>
+                        </div>
+                        <div class="flow-step" style="min-width: 180px;">
+                            <span class="step-label">Keyword (BM25)</span>
+                            <span class="step-detail">Matches name + category</span>
+                        </div>
+                    </div>
+                    <span class="flow-arrow">&#x2192;</span>
+                    <div class="flow-step highlight" style="min-width: 160px;">
+                        <span class="step-label">Combined Score</span>
+                        <span class="step-detail">Best of both worlds</span>
+                    </div>
+                </div>
+                <p>This ensures you get results that match both the <em>meaning</em> of your query and any <em>exact terms</em> you used.</p>
+            </div>
+
+            <!-- 6. WHAT IS semantic_text -->
+            <div class="section-title">The semantic_text Field Type</div>
+            <div class="viz-card">
+                <h3>How Elasticsearch 9 simplifies semantic search</h3>
+                <div class="flow" style="margin: 16px 0;">
+                    <div class="flow-step">
+                        <span class="step-label">You send</span>
+                        <span class="step-detail">Plain text</span>
+                    </div>
+                    <span class="flow-arrow">&#x2192;</span>
+                    <div class="flow-step es">
+                        <span class="step-label">semantic_text field</span>
+                        <span class="step-detail">Auto-embeds via ELSER</span>
+                    </div>
+                    <span class="flow-arrow">&#x2192;</span>
+                    <div class="flow-step">
+                        <span class="step-label">Stored</span>
+                        <span class="step-detail">Text + sparse vector</span>
+                    </div>
+                </div>
+                <p>The <code>semantic_text</code> field type handles everything automatically:</p>
+                <ul style="font-size: 13px; padding-left: 20px; color: #555; line-height: 1.8;">
+                    <li>Auto-deploys the ELSER model on first use</li>
+                    <li>Generates embeddings at index time (when products are added)</li>
+                    <li>Generates embeddings at query time (when you search)</li>
+                    <li>Handles long text by chunking (250 words, 100-word overlap)</li>
+                    <li>No pipeline configuration or model management needed</li>
+                </ul>
+            </div>
+
+        </div><!-- /how-it-works -->
+    </div>
+
+    <script>
+        const input = document.getElementById('query');
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+
+        function tryQuery(el) {
+            input.value = el.textContent;
+            search();
+        }
+
+        function toggleHowItWorks() {
+            const el = document.getElementById('howItWorks');
+            el.classList.toggle('visible');
+            const btn = el.previousElementSibling.querySelector('button');
+            btn.textContent = el.classList.contains('visible') ? 'Hide How It Works' : 'How It Works';
+        }
+
+        function isVisualizeOn() {
+            return document.getElementById('visualizeToggle').checked;
+        }
+
+        async function search() {
+            const query = input.value.trim();
+            if (!query) return;
+
+            const type = document.querySelector('input[name="type"]:checked').value;
+            const vizOn = isVisualizeOn();
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+
+            const vizPipeline = document.getElementById('vizPipeline');
+            vizPipeline.innerHTML = '';
+            vizPipeline.style.display = 'none';
+
+            try {
+                if (vizOn) {
+                    // Visualization mode: use explain endpoint
+                    document.getElementById('loading').style.display = 'none';
+                    vizPipeline.style.display = 'block';
+                    await runVisualization(query, type);
+                } else {
+                    // Normal mode
+                    const endpoint = type === 'hybrid' ? '/api/search/hybrid' : '/api/search';
+                    const res = await fetch(`${endpoint}?q=${encodeURIComponent(query)}`);
+                    const products = await res.json();
+                    renderResults(products);
+                }
+            } catch (err) {
+                document.getElementById('results').innerHTML =
+                    `<div class="status">Error: ${esc(err.message)}</div>`;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function renderResults(products) {
+            const resultsDiv = document.getElementById('results');
+            if (products.length === 0) {
+                resultsDiv.innerHTML = '<div class="status">No results found</div>';
+            } else {
+                resultsDiv.innerHTML = products.map(p => `
+                    <div class="product-card">
+                        ${p.image_url ? `<img class="product-image" src="${esc(p.image_url)}" alt="${esc(p.name)}" onerror="this.style.display='none'">` : ''}
+                        <div class="product-info">
+                            <div class="product-header">
+                                <span class="product-name">${esc(p.name)}</span>
+                                <span class="product-price">$${p.price.toFixed(2)}</span>
+                            </div>
+                            <span class="product-category">${esc(p.category)}</span>
+                            <p class="product-description">${esc(p.description)}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function tokenColorClass(weight, maxWeight) {
+            const ratio = weight / maxWeight;
+            if (ratio > 0.7) return 'high';
+            if (ratio > 0.4) return 'med';
+            return 'low';
+        }
+
+        function tokenBgColor(weight, maxWeight) {
+            const ratio = weight / maxWeight;
+            if (ratio > 0.7) return '#e8f0fe';
+            if (ratio > 0.4) return '#f0f5ff';
+            return '#f8f9fa';
+        }
+
+        function tokenBorderColor(weight, maxWeight) {
+            const ratio = weight / maxWeight;
+            if (ratio > 0.7) return '#4a90d9';
+            if (ratio > 0.4) return '#82b1ff';
+            return '#dee2e6';
+        }
+
+        async function runVisualization(query, searchType) {
+            const pipeline = document.getElementById('vizPipeline');
+
+            // Step 1: Show query
+            const step1 = createVizStep(1, 'Your Query');
+            step1.querySelector('.viz-step-body').innerHTML = `
+                <div class="viz-query-text">"${esc(query)}"</div>
+                <div style="font-size: 11px; color: #888;">Sent to Spring Boot &rarr; Elasticsearch</div>
+            `;
+            pipeline.appendChild(step1);
+            await delay(100);
+            step1.classList.add('visible');
+
+            // Connector
+            const conn1 = createConnector();
+            pipeline.appendChild(conn1);
+            await delay(300);
+            conn1.classList.add('visible');
+
+            // Step 2: ELSER Processing (with spinner)
+            const step2 = createVizStep(2, 'ELSER Processing');
+            step2.querySelector('.viz-step-body').innerHTML = `
+                <div class="viz-processing">
+                    <div class="viz-spinner"></div>
+                    <span>Generating sparse embeddings inside Elasticsearch...</span>
+                </div>
+            `;
+            pipeline.appendChild(step2);
+            await delay(100);
+            step2.classList.add('visible');
+
+            // Fire the actual API call
+            const res = await fetch(`/api/search/explain?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+
+            // Also get normal/hybrid results for product cards
+            const searchEndpoint = searchType === 'hybrid' ? '/api/search/hybrid' : '/api/search';
+            const searchRes = await fetch(`${searchEndpoint}?q=${encodeURIComponent(query)}`);
+            const products = await searchRes.json();
+
+            // Remove spinner, show done
+            step2.querySelector('.viz-step-body').innerHTML = `
+                <div class="viz-processing">
+                    <span style="color: #27ae60; font-weight: 600;">&#10003;</span>
+                    <span>ELSER generated <strong>${Object.keys(data.queryTokens).length} tokens</strong> from your query</span>
+                </div>
+            `;
+
+            const conn2 = createConnector();
+            pipeline.appendChild(conn2);
+            await delay(200);
+            conn2.classList.add('visible');
+
+            // Step 3: Query Tokens
+            const tokens = Object.entries(data.queryTokens);
+            const maxWeight = tokens.length > 0 ? tokens[0][1] : 1;
+            const topTokens = tokens.slice(0, 15);
+
+            const step3 = createVizStep(3, 'Query Tokens (ELSER Output)');
+            const tokensHtml = topTokens.map(([word, weight], i) => {
+                const cls = tokenColorClass(weight, maxWeight);
+                return `<span class="viz-token" data-idx="${i}"
+                    style="background: ${tokenBgColor(weight, maxWeight)}; border: 1px solid ${tokenBorderColor(weight, maxWeight)};">
+                    <span class="viz-token-word">${esc(word)}</span>
+                    <span class="viz-token-weight">${weight.toFixed(2)}</span>
+                </span>`;
+            }).join('');
+
+            step3.querySelector('.viz-step-body').innerHTML = `
+                <div style="font-size: 11px; color: #888; margin-bottom: 8px;">
+                    Sparse vector: each token has a weight indicating semantic relevance (top ${topTokens.length} shown)
+                </div>
+                <div class="viz-tokens">${tokensHtml}</div>
+            `;
+            pipeline.appendChild(step3);
+            await delay(100);
+            step3.classList.add('visible');
+
+            // Animate tokens appearing one by one
+            const tokenEls = step3.querySelectorAll('.viz-token');
+            for (const tokenEl of tokenEls) {
+                await delay(60);
+                tokenEl.classList.add('visible');
+            }
+
+            const conn3 = createConnector();
+            pipeline.appendChild(conn3);
+            await delay(300);
+            conn3.classList.add('visible');
+
+            // Step 4: Matching & Scoring
+            const step4 = createVizStep(4, 'Matching & Scoring');
+            const scoredResults = data.results;
+            const maxScore = scoredResults.length > 0 ? scoredResults[0].maxScore : 1;
+
+            const resultsHtml = scoredResults.map((r, i) => {
+                const pct = maxScore > 0 ? (r.score / maxScore * 100) : 0;
+                const barClass = i === 0 ? 's1' : (i < 3 ? 's2' : 's3');
+                return `<div class="viz-result-row" data-idx="${i}">
+                    <span class="viz-result-rank">#${i + 1}</span>
+                    <div class="viz-result-info">
+                        <div class="viz-result-name">${esc(r.product.name)}</div>
+                        <div class="viz-result-category">${esc(r.product.category)} &middot; $${r.product.price.toFixed(2)}</div>
+                    </div>
+                    <div class="viz-result-bar-bg">
+                        <div class="viz-result-bar ${barClass}" style="width: 0%;">${r.score.toFixed(1)}</div>
+                    </div>
+                    <span class="viz-result-score">${r.score.toFixed(2)}</span>
+                </div>`;
+            }).join('');
+
+            step4.querySelector('.viz-step-body').innerHTML = `
+                <div style="font-size: 11px; color: #888; margin-bottom: 10px;">
+                    ES compares query tokens against every product's stored vector. Higher overlap = higher score:
+                </div>
+                ${resultsHtml}
+            `;
+            pipeline.appendChild(step4);
+            await delay(100);
+            step4.classList.add('visible');
+
+            // Animate result rows and their score bars
+            const rowEls = step4.querySelectorAll('.viz-result-row');
+            for (let i = 0; i < rowEls.length; i++) {
+                await delay(150);
+                rowEls[i].classList.add('visible');
+                // Animate the bar width
+                const bar = rowEls[i].querySelector('.viz-result-bar');
+                const pct = maxScore > 0 ? (scoredResults[i].score / maxScore * 100) : 0;
+                requestAnimationFrame(() => {
+                    bar.style.width = Math.max(pct, 8) + '%';
+                });
+            }
+
+            const conn4 = createConnector();
+            pipeline.appendChild(conn4);
+            await delay(400);
+            conn4.classList.add('visible');
+
+            // Step 5: Final Results
+            const step5 = createVizStep(5, 'Ranked Results');
+            step5.querySelector('.viz-step-body').innerHTML = `
+                <div class="viz-done-note">
+                    Showing ${products.length} product${products.length !== 1 ? 's' : ''} ranked by semantic similarity
+                </div>
+            `;
+            pipeline.appendChild(step5);
+            await delay(100);
+            step5.classList.add('visible');
+
+            // Render the actual product cards below
+            await delay(200);
+            renderResults(products);
+        }
+
+        function createVizStep(number, title) {
+            const div = document.createElement('div');
+            div.className = 'viz-step';
+            div.innerHTML = `
+                <div class="viz-step-header">
+                    <div class="viz-step-number">${number}</div>
+                    <div class="viz-step-title">${title}</div>
+                </div>
+                <div class="viz-step-body"></div>
+            `;
+            return div;
+        }
+
+        function createConnector() {
+            const div = document.createElement('div');
+            div.className = 'viz-connector';
+            return div;
+        }
+
+        function esc(str) {
+            if (!str) return '';
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+    </script>
+</body>
+</html>

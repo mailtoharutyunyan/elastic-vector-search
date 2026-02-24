@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Product Semantic Search - Project Documentation</title>
+<style>
+    @page { size: A4; margin: 2cm 2.5cm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Georgia', 'Times New Roman', serif; font-size: 11pt; line-height: 1.7; color: #222; }
+    h1 { font-size: 28pt; color: #1a1a2e; margin-bottom: 8px; }
+    h2 { font-size: 18pt; color: #16213e; margin-top: 32px; margin-bottom: 12px; border-bottom: 2px solid #4a90d9; padding-bottom: 6px; page-break-after: avoid; }
+    h3 { font-size: 13pt; color: #0f3460; margin-top: 20px; margin-bottom: 8px; page-break-after: avoid; }
+    p { margin-bottom: 10px; text-align: justify; }
+    ul, ol { margin-bottom: 10px; padding-left: 24px; }
+    li { margin-bottom: 4px; }
+    code { font-family: 'Menlo', 'Consolas', monospace; font-size: 9.5pt; background: #f4f4f4; padding: 1px 4px; border-radius: 3px; }
+    pre { font-family: 'Menlo', 'Consolas', monospace; font-size: 9pt; background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 16px; margin: 10px 0 14px 0; overflow-x: auto; line-height: 1.5; page-break-inside: avoid; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 14px 0; font-size: 10pt; page-break-inside: avoid; }
+    th { background: #4a90d9; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
+    td { padding: 7px 12px; border-bottom: 1px solid #e0e0e0; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .cover { text-align: center; padding: 120px 0 60px 0; page-break-after: always; }
+    .cover h1 { font-size: 36pt; margin-bottom: 12px; }
+    .cover .subtitle { font-size: 16pt; color: #4a90d9; margin-bottom: 40px; }
+    .cover .meta { font-size: 11pt; color: #666; line-height: 2; }
+    .cover .line { width: 80px; height: 3px; background: #4a90d9; margin: 30px auto; }
+    .toc { page-break-after: always; }
+    .toc h2 { border-bottom: none; }
+    .toc ul { list-style: none; padding-left: 0; }
+    .toc li { padding: 6px 0; border-bottom: 1px dotted #ccc; font-size: 11pt; }
+    .toc li span { color: #4a90d9; }
+    .note { background: #e8f4fd; border-left: 4px solid #4a90d9; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 10pt; page-break-inside: avoid; }
+    .diagram { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; margin: 12px 0; font-family: 'Menlo', monospace; font-size: 9pt; line-height: 1.6; text-align: center; page-break-inside: avoid; }
+    .page-break { page-break-before: always; }
+    .badge { display: inline-block; background: #4a90d9; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9pt; }
+    strong { color: #16213e; }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover">
+    <h1>Product Semantic Search</h1>
+    <div class="subtitle">Spring Boot 4.0.2 &amp; Elasticsearch 9 with ELSER Embeddings</div>
+    <div class="line"></div>
+    <div class="meta">
+        Project Documentation<br>
+        Semantic Search with Embeddings Inside Elasticsearch<br><br>
+        <strong>Technology Stack</strong><br>
+        Java 21 &bull; Spring Boot 4.0.2 &bull; Elasticsearch 9.0.0 &bull; ELSER<br><br>
+        February 2026
+    </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+        <li><span>1.</span> What is Elasticsearch</li>
+        <li><span>2.</span> What is Semantic Search</li>
+        <li><span>3.</span> What is ELSER (Elastic Learned Sparse EncodeR)</li>
+        <li><span>4.</span> How semantic_text Works in Elasticsearch 9</li>
+        <li><span>5.</span> What This Project Does</li>
+        <li><span>6.</span> Architecture &amp; Data Flow</li>
+        <li><span>7.</span> Project Components</li>
+        <li><span>8.</span> API Endpoints</li>
+        <li><span>9.</span> Sample Data</li>
+        <li><span>10.</span> Infrastructure &amp; Deployment</li>
+        <li><span>11.</span> How to Run</li>
+    </ul>
+</div>
+
+<!-- SECTION 1 -->
+<h2>1. What is Elasticsearch</h2>
+
+<p><strong>Elasticsearch</strong> is a distributed, open-source search and analytics engine built on top of Apache Lucene. It is designed to handle large volumes of data and provides near real-time search capabilities with horizontal scalability and high availability.</p>
+
+<h3>Key Characteristics</h3>
+<ul>
+    <li><strong>Document-oriented</strong> &mdash; Data is stored as JSON documents in indices (similar to tables in relational databases).</li>
+    <li><strong>Full-text search</strong> &mdash; Built-in text analysis, tokenization, and relevance scoring using BM25 and other algorithms.</li>
+    <li><strong>Distributed architecture</strong> &mdash; Data is automatically sharded and replicated across nodes for fault tolerance and performance.</li>
+    <li><strong>RESTful API</strong> &mdash; All operations are performed through HTTP endpoints, making it language-agnostic.</li>
+    <li><strong>Schema-free (dynamic mapping)</strong> &mdash; Elasticsearch can automatically detect and map field types, though explicit mappings are recommended for production.</li>
+    <li><strong>Aggregations</strong> &mdash; Powerful analytics capabilities for metrics, bucketing, and pipeline aggregations.</li>
+</ul>
+
+<h3>How Elasticsearch Stores Data</h3>
+<p>Documents are organized into <strong>indices</strong>. Each index has a <strong>mapping</strong> that defines the structure of documents &mdash; the field names, their data types (text, keyword, integer, date, dense_vector, semantic_text, etc.), and how they should be analyzed and indexed.</p>
+
+<p>When a document is indexed, Elasticsearch analyzes text fields, builds an <strong>inverted index</strong> for fast full-text lookup, and optionally stores vectors for similarity search.</p>
+
+<div class="note">
+    <strong>Version Note:</strong> This project uses <strong>Elasticsearch 9.0.0</strong>, released April 2025, which is built on Lucene 10.1.0 and introduces significant improvements in semantic search capabilities, including automatic ELSER deployment via the <code>semantic_text</code> field type.
+</div>
+
+<!-- SECTION 2 -->
+<h2>2. What is Semantic Search</h2>
+
+<p><strong>Semantic search</strong> is a search technique that understands the <em>meaning and intent</em> behind a query, rather than simply matching exact keywords. It bridges the gap between how humans think about information and how traditional search engines operate.</p>
+
+<h3>Traditional Search vs Semantic Search</h3>
+
+<table>
+    <tr>
+        <th>Aspect</th>
+        <th>Traditional (Keyword) Search</th>
+        <th>Semantic Search</th>
+    </tr>
+    <tr>
+        <td>Matching method</td>
+        <td>Exact keyword matching (BM25)</td>
+        <td>Meaning-based similarity</td>
+    </tr>
+    <tr>
+        <td>Query: "warm drink"</td>
+        <td>Only finds documents containing "warm" and "drink"</td>
+        <td>Finds "hot chocolate", "green tea", "coffee"</td>
+    </tr>
+    <tr>
+        <td>Synonyms</td>
+        <td>Misses synonyms unless configured</td>
+        <td>Naturally understands synonyms</td>
+    </tr>
+    <tr>
+        <td>Context</td>
+        <td>No understanding of context</td>
+        <td>Understands contextual relationships</td>
+    </tr>
+    <tr>
+        <td>Implementation</td>
+        <td>Inverted index</td>
+        <td>Vector embeddings + similarity</td>
+    </tr>
+</table>
+
+<h3>How Semantic Search Works</h3>
+<ol>
+    <li><strong>Embedding Generation</strong> &mdash; Both documents and queries are converted into numerical vectors (embeddings) by a machine learning model. These vectors capture the semantic meaning of the text.</li>
+    <li><strong>Vector Indexing</strong> &mdash; Document embeddings are stored in a vector index (using data structures like HNSW graphs) for efficient similarity search.</li>
+    <li><strong>Similarity Search</strong> &mdash; When a query arrives, it is also converted to a vector, and the search engine finds documents whose vectors are closest to the query vector using distance metrics (cosine similarity, dot product, etc.).</li>
+</ol>
+
+<h3>Visualizing Embedding Generation</h3>
+
+<div class="diagram">
+<pre style="text-align: left; display: inline-block; background: none; border: none; padding: 0; margin: 0;">
+  INDEXING: How text becomes searchable embeddings
+  ================================================
+
+  Input Text                          ELSER Model                    Stored in ES
+  +--------------------------+      +----------------+      +------------------------+
+  |                          |      |                |      |  Sparse Vector:        |
+  | "Lightweight breathable  | ---> | ELSER Model    | ---> |  {                     |
+  |  running shoes with      |      | (inside ES)    |      |    "running": 2.31,    |
+  |  cushioned sole for      |      |                |      |    "athletic": 1.89,   |
+  |  marathon training"      |      | Tokenize +     |      |    "footwear": 1.75,   |
+  |                          |      | Weight tokens  |      |    "marathon": 1.62,   |
+  +--------------------------+      +----------------+      |    "comfort": 1.44,    |
+                                                            |    "lightweight": 1.38 |
+                                                            |    ...                 |
+                                                            +------------------------+
+</pre>
+</div>
+
+<h3>Visualizing Semantic Search</h3>
+
+<div class="diagram">
+<pre style="text-align: left; display: inline-block; background: none; border: none; padding: 0; margin: 0;">
+  SEARCH: How a query finds semantically similar products
+  =======================================================
+
+  User Query:  "gift for a programmer"
+       |
+       v
+  +----------------+         +-----------------------+
+  | ELSER Model    |         | Query Sparse Vector:  |
+  | (inside ES)    | ------> | "programming": 2.1,   |
+  | Generates      |         | "developer": 1.8,     |
+  | query embedding|         | "keyboard": 1.5,      |
+  +----------------+         | "computer": 1.4, ...  |
+                              +-----------+-----------+
+                                          |
+                         Compare with all document vectors
+                                          |
+                    +---------------------+---------------------+
+                    |                     |                     |
+                    v                     v                     v
+           +--------------+     +--------------+     +--------------+
+           | Keyboard RGB |     | Laptop Bag   |     | Headphones   |
+           | Score: 0.89  |     | Score: 0.72  |     | Score: 0.65  |
+           | (top match!) |     |              |     |              |
+           +--------------+     +--------------+     +--------------+
+</pre>
+</div>
+
+<h3>Hybrid Search</h3>
+<p><strong>Hybrid search</strong> combines both traditional keyword matching and semantic similarity. This provides the best of both worlds: exact term matches when the user knows the precise term, and meaning-based results when the query is more natural or exploratory. This project implements both pure semantic search and hybrid search.</p>
+
+<div class="diagram">
+<pre style="text-align: left; display: inline-block; background: none; border: none; padding: 0; margin: 0;">
+  HYBRID SEARCH: Combining two ranking signals
+  =============================================
+
+  Query: "outdoor music for a party"
+       |
+       +---> Semantic Search (ELSER)          +---> Keyword Search (BM25)
+       |     on "description" field            |     on "name" + "category"
+       |                                       |
+       |     1. Bluetooth Speaker  (0.91)      |     1. Bluetooth Speaker  (4.2)
+       |     2. Headphones         (0.68)      |     2. Headphones         (2.1)
+       |     3. Yoga Mat           (0.32)      |     3. Keyboard           (0.8)
+       |                                       |
+       +--------->--------+--------<-----------+
+                          |
+                   Combined Score
+                   (bool: should)
+                          |
+                          v
+              +------------------------+
+              | Final Ranked Results:  |
+              | 1. Bluetooth Speaker   |
+              | 2. Headphones          |
+              | 3. Yoga Mat            |
+              +------------------------+
+</pre>
+</div>
+
+<!-- SECTION 3 -->
+<h2 class="page-break">3. What is ELSER</h2>
+
+<p><strong>ELSER (Elastic Learned Sparse EncodeR)</strong> is a Natural Language Processing (NLP) model developed and trained by Elastic specifically for semantic search. Unlike traditional dense vector models (like BERT or OpenAI embeddings), ELSER uses <strong>sparse vector representations</strong>.</p>
+
+<h3>Dense vs Sparse Vectors</h3>
+
+<table>
+    <tr>
+        <th>Feature</th>
+        <th>Dense Vectors (e.g., BERT, OpenAI)</th>
+        <th>Sparse Vectors (ELSER)</th>
+    </tr>
+    <tr>
+        <td>Representation</td>
+        <td>Fixed-size arrays (e.g., 768 or 1536 dimensions), most values non-zero</td>
+        <td>Large vocabulary-sized arrays, most values are zero</td>
+    </tr>
+    <tr>
+        <td>Storage</td>
+        <td>Requires dense vector storage</td>
+        <td>Only non-zero values stored (efficient)</td>
+    </tr>
+    <tr>
+        <td>Interpretability</td>
+        <td>Opaque &mdash; dimensions have no clear meaning</td>
+        <td>Each dimension maps to a token/concept</td>
+    </tr>
+    <tr>
+        <td>Search method</td>
+        <td>kNN (approximate nearest neighbor)</td>
+        <td>Uses Lucene's inverted index natively</td>
+    </tr>
+    <tr>
+        <td>Integration</td>
+        <td>Requires separate vector index</td>
+        <td>Integrates with existing Elasticsearch infrastructure</td>
+    </tr>
+</table>
+
+<h3>Why ELSER?</h3>
+<ul>
+    <li><strong>Built into Elasticsearch</strong> &mdash; No external model server, API, or Python service required. The model runs directly inside Elasticsearch's ML node.</li>
+    <li><strong>Automatic deployment</strong> &mdash; In Elasticsearch 9, ELSER auto-deploys when a <code>semantic_text</code> field is first used. No manual model management needed.</li>
+    <li><strong>No dimensionality configuration</strong> &mdash; Unlike dense vector models, you don't need to specify vector dimensions, similarity functions, or index parameters.</li>
+    <li><strong>Leverages existing infrastructure</strong> &mdash; Sparse vectors use Lucene's native inverted index, meaning no additional approximate nearest neighbor (ANN) index is needed.</li>
+    <li><strong>Trained by Elastic</strong> &mdash; Optimized specifically for search relevance across diverse domains.</li>
+</ul>
+
+<div class="note">
+    <strong>Key advantage:</strong> With ELSER, all embedding computation happens <em>inside Elasticsearch</em>. You send plain text, and Elasticsearch handles the embedding generation, storage, and search &mdash; no external LLM or embedding service needed.
+</div>
+
+<!-- SECTION 4 -->
+<h2>4. How semantic_text Works in Elasticsearch 9</h2>
+
+<p>The <code>semantic_text</code> field type was introduced to simplify semantic search in Elasticsearch. It is an abstraction that <strong>automatically handles embedding generation</strong> at both indexing time and query time.</p>
+
+<h3>What happens when you index a document</h3>
+<ol>
+    <li>You send a plain text string to a <code>semantic_text</code> field.</li>
+    <li>Elasticsearch automatically passes the text to the configured inference endpoint (ELSER by default in ES 9).</li>
+    <li>The ELSER model generates sparse vector embeddings from the text.</li>
+    <li>If the text is long, it is automatically <strong>chunked</strong> into 250-word sections with 100-word overlap.</li>
+    <li>The embeddings are stored alongside the original text in the index.</li>
+</ol>
+
+<h3>What happens when you search</h3>
+<ol>
+    <li>You send a plain text query using a <code>semantic</code> query type.</li>
+    <li>Elasticsearch passes the query text through the same ELSER model to generate a query embedding.</li>
+    <li>The query embedding is matched against document embeddings using sparse vector similarity.</li>
+    <li>Results are ranked by semantic relevance and returned.</li>
+</ol>
+
+<h3>Index Mapping Example</h3>
+<pre>{
+  "mappings": {
+    "properties": {
+      "description": {
+        "type": "semantic_text"
+      }
+    }
+  }
+}</pre>
+
+<p>In Elasticsearch 9, when no <code>inference_id</code> is specified, the field automatically uses the default ELSER model. The model is downloaded and deployed on first use.</p>
+
+<!-- SECTION 5 -->
+<h2 class="page-break">5. What This Project Does</h2>
+
+<p>This project is a <strong>product catalog search application</strong> that demonstrates semantic search capabilities using Elasticsearch's built-in ELSER model. Users can search for products using natural language descriptions, and the system returns results ranked by semantic relevance rather than keyword matching.</p>
+
+<h3>Key Features</h3>
+<ul>
+    <li><strong>Semantic Product Search</strong> &mdash; Search products by describing what you need in natural language (e.g., "something to keep me warm while hiking").</li>
+    <li><strong>Hybrid Search</strong> &mdash; Combines semantic understanding with traditional keyword matching for comprehensive results.</li>
+    <li><strong>In-Elasticsearch Embeddings</strong> &mdash; All text embeddings are generated inside Elasticsearch using ELSER. No external AI services, no Python, no API keys.</li>
+    <li><strong>Web Interface</strong> &mdash; Simple, responsive HTML frontend with example queries and product cards with images.</li>
+    <li><strong>Sample Data</strong> &mdash; Pre-loaded catalog of 10 products across categories (electronics, footwear, kitchen, sports, etc.).</li>
+    <li><strong>Docker-based Infrastructure</strong> &mdash; Single <code>docker compose up</code> command to start Elasticsearch.</li>
+</ul>
+
+<h3>Example Queries and Results</h3>
+
+<table>
+    <tr>
+        <th>Natural Language Query</th>
+        <th>Top Result</th>
+        <th>Why It Matches</th>
+    </tr>
+    <tr>
+        <td>"gift for a programmer"</td>
+        <td>Mechanical Keyboard RGB</td>
+        <td>ELSER understands programmers use keyboards</td>
+    </tr>
+    <tr>
+        <td>"healthy drink with antioxidants"</td>
+        <td>Organic Green Tea Collection</td>
+        <td>ELSER links antioxidants to green tea</td>
+    </tr>
+    <tr>
+        <td>"outdoor music for a party"</td>
+        <td>Portable Bluetooth Speaker</td>
+        <td>ELSER connects outdoor party to portable speakers</td>
+    </tr>
+    <tr>
+        <td>"work from home comfort"</td>
+        <td>Ergonomic Office Chair</td>
+        <td>ELSER associates WFH comfort with office chairs</td>
+    </tr>
+</table>
+
+<!-- SECTION 6 -->
+<h2>6. Architecture &amp; Data Flow</h2>
+
+<div class="diagram">
+<pre style="text-align: left; display: inline-block; background: none; border: none; padding: 0; margin: 0;">
+ +------------------+          +-------------------+         +------------------+
+ |                  |   HTTP   |                   |  REST   |                  |
+ |   Browser (UI)   | -------> |  Spring Boot App  | ------> |  Elasticsearch 9 |
+ |   index.html     |   :8080  |  (Java 21)        |  :9200  |  (ELSER model)   |
+ |                  | <------- |                   | <------ |                  |
+ +------------------+   JSON   +-------------------+         +------------------+
+                                                                     |
+                                                              +------+------+
+                                                              |             |
+                                                         semantic_text   inverted
+                                                          (ELSER)        index
+                                                         embeddings    (keywords)
+</pre>
+</div>
+
+<h3>Startup Flow</h3>
+<ol>
+    <li>Docker Compose starts Elasticsearch 9 with ML enabled.</li>
+    <li>Setup script activates the trial license (required for inference).</li>
+    <li>Spring Boot application starts and connects via REST5 client.</li>
+    <li><code>DataInitializer</code> creates the "products" index with <code>semantic_text</code> mapping.</li>
+    <li>ELSER model is automatically downloaded and deployed by Elasticsearch (first run only, ~300MB).</li>
+    <li>10 sample products are indexed. Elasticsearch generates ELSER embeddings for each product description.</li>
+    <li>Application is ready to serve search requests on port 8080.</li>
+</ol>
+
+<h3>Search Flow</h3>
+<ol>
+    <li>User enters a natural language query in the web interface.</li>
+    <li>Frontend sends <code>GET /api/search?q=...</code> to the Spring Boot controller.</li>
+    <li>Controller delegates to <code>ProductService</code>.</li>
+    <li>Service builds a <code>semantic</code> query and sends it to Elasticsearch.</li>
+    <li>Elasticsearch generates an ELSER embedding for the query text (inside ES).</li>
+    <li>ES matches the query embedding against stored document embeddings.</li>
+    <li>Results are ranked by semantic similarity and returned as JSON.</li>
+    <li>Frontend renders product cards with images, names, prices, and descriptions.</li>
+</ol>
+
+<!-- SECTION 7 -->
+<h2 class="page-break">7. Project Components</h2>
+
+<h3>7.1 Product Model</h3>
+<p><code>com.example.productsearch.model.Product</code> &mdash; A Java record representing a product in the catalog.</p>
+
+<table>
+    <tr><th>Field</th><th>Type</th><th>ES Mapping</th><th>Description</th></tr>
+    <tr><td>id</td><td>String</td><td>keyword</td><td>Unique product identifier</td></tr>
+    <tr><td>name</td><td>String</td><td>text</td><td>Product name (full-text searchable)</td></tr>
+    <tr><td>description</td><td>String</td><td><strong>semantic_text</strong></td><td>Product description with ELSER embeddings</td></tr>
+    <tr><td>category</td><td>String</td><td>keyword</td><td>Product category (exact match)</td></tr>
+    <tr><td>price</td><td>double</td><td>double</td><td>Product price in USD</td></tr>
+    <tr><td>imageUrl</td><td>String</td><td>keyword</td><td>URL to product image</td></tr>
+</table>
+
+<div class="note">
+    The <code>description</code> field uses the <code>semantic_text</code> type. When a product is indexed, Elasticsearch automatically generates ELSER embeddings for this field. No external processing is needed.
+</div>
+
+<h3>7.2 Elasticsearch Configuration</h3>
+<p><code>com.example.productsearch.config.ElasticsearchConfig</code> &mdash; Configures the Elasticsearch Java client.</p>
+<ul>
+    <li>Uses <code>Rest5Client</code> (new in ES Java client 9.x, based on Apache HttpClient 5)</li>
+    <li>Connects to configurable host/port (default: <code>localhost:9200</code>)</li>
+    <li>Uses <code>JacksonJsonpMapper</code> for JSON serialization</li>
+</ul>
+
+<h3>7.3 Product Service</h3>
+<p><code>com.example.productsearch.service.ProductService</code> &mdash; Core service with three responsibilities:</p>
+
+<p><strong>Index Management:</strong> Creates the "products" index with proper mappings if it doesn't exist. The <code>description</code> field is mapped as <code>semantic_text</code> for automatic ELSER embedding generation.</p>
+
+<p><strong>Semantic Search:</strong> Uses the <code>semantic</code> query type to search the <code>description</code> field. Elasticsearch handles query embedding generation and similarity matching internally.</p>
+
+<p><strong>Hybrid Search:</strong> Combines a <code>semantic</code> query on descriptions with a <code>multi_match</code> keyword query on product name (2x boost) and category. Uses boolean <code>should</code> clauses to merge both scoring signals.</p>
+
+<h3>7.4 REST Controller</h3>
+<p><code>com.example.productsearch.controller.SearchController</code> &mdash; Exposes two search endpoints (see Section 8).</p>
+
+<h3>7.5 Data Initializer</h3>
+<p><code>com.example.productsearch.init.DataInitializer</code> &mdash; Implements <code>ApplicationRunner</code> to automatically create the index and load 10 sample products on application startup. Handles individual indexing failures gracefully.</p>
+
+<h3>7.6 Web Frontend</h3>
+<p><code>src/main/resources/static/index.html</code> &mdash; Single-page HTML application with:</p>
+<ul>
+    <li>Search input with Enter key support</li>
+    <li>Toggle between Semantic and Hybrid search modes</li>
+    <li>Five clickable example queries for quick testing</li>
+    <li>Dynamic product cards with images, prices, categories, and descriptions</li>
+    <li>XSS-safe rendering via HTML entity escaping</li>
+</ul>
+
+<!-- SECTION 8 -->
+<h2>8. API Endpoints</h2>
+
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Parameter</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td><span class="badge">GET</span></td>
+        <td><code>/api/search</code></td>
+        <td><code>q</code> (required)</td>
+        <td>Pure semantic search using ELSER embeddings on product descriptions</td>
+    </tr>
+    <tr>
+        <td><span class="badge">GET</span></td>
+        <td><code>/api/search/hybrid</code></td>
+        <td><code>q</code> (required)</td>
+        <td>Hybrid search combining semantic + keyword matching on name and category</td>
+    </tr>
+    <tr>
+        <td><span class="badge">GET</span></td>
+        <td><code>/</code></td>
+        <td>&mdash;</td>
+        <td>Serves the HTML search interface (static resource)</td>
+    </tr>
+</table>
+
+<h3>Response Format</h3>
+<pre>[
+  {
+    "id": "1",
+    "name": "Running Shoes Pro",
+    "description": "Lightweight breathable running shoes...",
+    "category": "Footwear",
+    "price": 129.99,
+    "image_url": "https://images.unsplash.com/..."
+  }
+]</pre>
+
+<!-- SECTION 9 -->
+<h2 class="page-break">9. Sample Data</h2>
+
+<p>The application pre-loads 10 products across diverse categories to demonstrate semantic search capabilities:</p>
+
+<table>
+    <tr><th>#</th><th>Product</th><th>Category</th><th>Price</th></tr>
+    <tr><td>1</td><td>Running Shoes Pro</td><td>Footwear</td><td>$129.99</td></tr>
+    <tr><td>2</td><td>Wireless Noise-Cancelling Headphones</td><td>Electronics</td><td>$249.99</td></tr>
+    <tr><td>3</td><td>Organic Green Tea Collection</td><td>Food &amp; Beverage</td><td>$24.99</td></tr>
+    <tr><td>4</td><td>Ergonomic Office Chair</td><td>Furniture</td><td>$449.99</td></tr>
+    <tr><td>5</td><td>Stainless Steel Water Bottle</td><td>Kitchen</td><td>$34.99</td></tr>
+    <tr><td>6</td><td>Yoga Mat Premium</td><td>Sports</td><td>$49.99</td></tr>
+    <tr><td>7</td><td>Mechanical Keyboard RGB</td><td>Electronics</td><td>$159.99</td></tr>
+    <tr><td>8</td><td>Portable Bluetooth Speaker</td><td>Electronics</td><td>$89.99</td></tr>
+    <tr><td>9</td><td>French Press Coffee Maker</td><td>Kitchen</td><td>$39.99</td></tr>
+    <tr><td>10</td><td>Backpack Laptop Bag</td><td>Bags</td><td>$79.99</td></tr>
+</table>
+
+<p>Each product includes a detailed natural-language description that ELSER uses for embedding generation. For example, the Yoga Mat's description mentions "home workouts, pilates, stretching and meditation, eco-friendly TPE material" &mdash; enabling semantic matches for queries like "exercise at home" or "eco-friendly fitness gear".</p>
+
+<!-- SECTION 10 -->
+<h2>10. Infrastructure &amp; Deployment</h2>
+
+<h3>10.1 Docker Compose</h3>
+<p>Elasticsearch runs as a Docker container with the following configuration:</p>
+
+<table>
+    <tr><th>Setting</th><th>Value</th><th>Purpose</th></tr>
+    <tr><td>Image</td><td><code>elasticsearch:9.0.0</code></td><td>Latest major version with semantic_text support</td></tr>
+    <tr><td>Discovery type</td><td><code>single-node</code></td><td>Standalone mode (no cluster)</td></tr>
+    <tr><td>Security</td><td>Disabled</td><td>Simplifies local development</td></tr>
+    <tr><td>Machine Learning</td><td>Enabled</td><td>Required for ELSER model execution</td></tr>
+    <tr><td>JVM Heap</td><td>2 GB</td><td>Sufficient for ELSER + indexing</td></tr>
+    <tr><td>Memory Limit</td><td>4 GB</td><td>Container-level memory cap</td></tr>
+    <tr><td>HTTP Port</td><td>9200</td><td>REST API access</td></tr>
+    <tr><td>Data Volume</td><td><code>es-data</code></td><td>Persistent storage across restarts</td></tr>
+</table>
+
+<h3>10.2 Trial License</h3>
+<p>Elasticsearch's inference API (used by <code>semantic_text</code>) requires a trial or platinum license. The setup script activates a 30-day trial license via:</p>
+<pre>POST /_license/start_trial?acknowledge=true</pre>
+
+<h3>10.3 Dependencies</h3>
+
+<table>
+    <tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
+    <tr><td>Spring Boot Starter Web</td><td>4.0.2</td><td>REST API + embedded Tomcat</td></tr>
+    <tr><td>Elasticsearch Java Client</td><td>9.0.1</td><td>ES API client with Rest5Client transport</td></tr>
+    <tr><td>Jackson Databind</td><td>(managed)</td><td>JSON serialization</td></tr>
+    <tr><td>Java</td><td>21</td><td>Runtime platform</td></tr>
+</table>
+
+<!-- SECTION 11 -->
+<h2>11. How to Run</h2>
+
+<h3>Prerequisites</h3>
+<ul>
+    <li>Docker and Docker Compose installed</li>
+    <li>Java 21 installed</li>
+    <li>At least 4 GB of free RAM for Elasticsearch</li>
+</ul>
+
+<h3>Steps</h3>
+
+<p><strong>Step 1: Start Elasticsearch</strong></p>
+<pre>docker compose up -d</pre>
+
+<p><strong>Step 2: Setup (activate trial license)</strong></p>
+<pre>./setup-elser.sh</pre>
+
+<p><strong>Step 3: Start the Spring Boot application</strong></p>
+<pre>./mvnw spring-boot:run</pre>
+<p>On first run, Elasticsearch will download and deploy the ELSER model (~300 MB). This may take a few minutes.</p>
+
+<p><strong>Step 4: Open the search interface</strong></p>
+<pre>http://localhost:8080</pre>
+
+<p><strong>Step 5: Try some searches</strong></p>
+<ul>
+    <li>"gift for a programmer" &rarr; Mechanical Keyboard RGB</li>
+    <li>"healthy drink with antioxidants" &rarr; Organic Green Tea Collection</li>
+    <li>"outdoor music for a party" &rarr; Portable Bluetooth Speaker</li>
+</ul>
+
+<div class="note">
+    <strong>Stopping:</strong> To stop the application, press <code>Ctrl+C</code> in the terminal. To stop Elasticsearch: <code>docker compose down</code>. To also remove data: <code>docker compose down -v</code>.
+</div>
+
+<!-- SECTION 12 -->
+<h2 class="page-break">12. Search Interface</h2>
+
+<p>The application provides a web-based search interface at <code>http://localhost:8080</code>. Below is a representation of the search UI layout:</p>
+
+<div class="diagram" style="text-align: left; padding: 20px;">
+<pre style="background: none; border: none; padding: 0; margin: 0; font-size: 8.5pt;">
++=========================================================================+
+|                                                                         |
+|                          Product Search                                 |
+|            Semantic search powered by Elasticsearch ELSER               |
+|                                                                         |
+|  +-------------------------------------------------------+  +--------+ |
+|  | Describe what you're looking for...                    |  | Search | |
+|  +-------------------------------------------------------+  +--------+ |
+|                                                                         |
+|         ( ) Semantic Search     ( ) Hybrid Search                       |
+|                                                                         |
+|  Try: [something to keep me warm] [healthy drink] [gift for a coder]    |
+|                                                                         |
+|  +-------------------------------------------------------------------+ |
+|  | +--------+                                                         | |
+|  | | [img]  |  Running Shoes Pro                          $129.99     | |
+|  | |        |  Footwear                                               | |
+|  | +--------+  Lightweight breathable running shoes with cushioned    | |
+|  |              sole for marathon training and daily jogging...       | |
+|  +-------------------------------------------------------------------+ |
+|                                                                         |
+|  +-------------------------------------------------------------------+ |
+|  | +--------+                                                         | |
+|  | | [img]  |  Yoga Mat Premium                            $49.99     | |
+|  | |        |  Sports                                                 | |
+|  | +--------+  Extra thick non-slip yoga mat for home workouts,       | |
+|  |              pilates, stretching and meditation...                  | |
+|  +-------------------------------------------------------------------+ |
+|                                                                         |
++=========================================================================+
+</pre>
+</div>
+
+<h3>UI Features</h3>
+<ul>
+    <li><strong>Search Input</strong> &mdash; Free-text input field accepting natural language queries. Supports Enter key for quick search.</li>
+    <li><strong>Search Mode Toggle</strong> &mdash; Radio buttons to switch between pure Semantic and Hybrid search modes.</li>
+    <li><strong>Example Queries</strong> &mdash; Clickable tags with pre-built queries for quick demonstration.</li>
+    <li><strong>Product Cards</strong> &mdash; Each result displays the product image, name, price, category badge, and full description.</li>
+    <li><strong>Responsive Design</strong> &mdash; Mobile-friendly layout with max-width container.</li>
+</ul>
+
+</body>
+</html>
